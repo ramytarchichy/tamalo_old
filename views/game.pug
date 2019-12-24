@@ -1,0 +1,45 @@
+extends layout.pug
+
+block variables
+    - title = 'Game'
+
+block head
+    link(rel='stylesheet' href='res/css/game.css')
+
+block content
+
+    p#debug
+
+    .screen#join
+        button(type='button' onclick='startGame()') Start Game
+        table#playerList
+            tr
+                th(style='width: 20px') #
+                th(style='width: 200px') Player
+                th Score
+
+    .screen#game
+        #players
+            p TEST
+        #controls
+            button(id='btnNext' type='button' onclick='nextPlayer()') Next
+            br
+            button(id='btnCallStop' type='button' onclick='callStop()') Tamalo!
+            br
+            button(id='btnDraw' type='button' onclick='drawCard()') Draw Card
+
+    .overlay#drawnCard
+        p You've drawn...
+        br
+        
+        br
+        button(id='btnSwapDrawn' type='button' onclick='') Swap
+        button(id='btnDropDrawn' type='button' onclick='') Drop
+
+    if user
+        script const session = !{JSON.stringify(session)};
+    
+    script(src='https://code.jquery.com/jquery-3.1.1.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='res/scripts/he.js')
+    script(src='res/scripts/client.js')

@@ -1,0 +1,16 @@
+extends layout.pug
+
+block variables
+    - title = 'Log In'
+
+block content
+
+    form(method='POST')
+        input(name='username' type='text')
+        br
+        input(name='password' type='password')
+        br
+        input(type='submit' value='Log In')
+
+    p Don't have an account? 
+        a(href='/signup') Sign up!

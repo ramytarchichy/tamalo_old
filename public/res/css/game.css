@@ -1,0 +1,49 @@
+.screen
+{
+    display: none;
+}
+
+.overlay
+{
+    position: fixed;
+    display: none;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+}
+
+#drawnCard
+{
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+
+table#playerList
+{
+    float: left;
+}
+
+#playerList tr:nth-child(odd)
+{
+    background: #eee;
+    overflow: hidden;
+}
+
+li#self
+{
+    background: #0F0;
+}
+
+li#current
+{
+    background: #99E;
+}
+
+li#stop
+{
+    background: #F70;
+}

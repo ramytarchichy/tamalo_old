@@ -1,0 +1,4 @@
+options.json
+node_modules
+.vscode
+package-lock.json

@@ -1,0 +1,28 @@
+- var title = ''
+block variables
+
+html
+    head
+        title #{title} - Tamalo!
+        meta(name='viewport' content='width=device-width, initial-scale=1')
+        link(rel='stylesheet' href='res/css/style.css')
+        link(rel='icon' href='res/favicon.png')
+        link(rel='stylesheet' href='https://www.w3schools.com/w3css/4/w3.css')
+        block head
+    body
+
+        .w3-bar.w3-teal
+            a.w3-bar-item.w3-button(href='/') Tamalo!
+
+            if(user)
+                a.w3-bar-item.w3-button.w3-right(href='/logout') Log Out
+                a.w3-bar-item.w3-button.w3-right(href='/account') Settings
+                span.w3-bar-item.w3-right Welcome, #{user.username}!
+            else
+                a.w3-bar-item.w3-button.w3-right(href='/login') Log In
+
+        block content
+        
+        #footer
+            p Website still very much under construction, and not intended for public use yet.
+            p You can contact me at: overclockedsanic@protonmail.com

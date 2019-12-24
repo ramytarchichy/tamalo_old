@@ -1,0 +1,10 @@
+extends layout.pug
+
+block variables
+    - title = 'Settings'
+
+block content
+    p User ID: #{user.id}
+    p Username: #{user.username}
+    p Login method: #{user.auth.method}
+    p Sessions: #{user.tokens.length}
