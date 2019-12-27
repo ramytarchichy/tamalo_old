@@ -19,6 +19,12 @@ let mongoClient = new MongoClient(options.mongodb_url, { useUnifiedTopology: tru
 
 
 
+function dropCardOnDeck(game, weight)
+{
+    game.deck.push(game.topCard)
+    game.topCard = weight
+    game.droppable = true
+}
 
 function generateToken()
 {
@@ -82,21 +88,61 @@ function requirePower(client, power, fun)
     })
 }
 
+function getPlayerIndexByUserId(game, userId)
+{
+    for (let i = 0; i < game.players.length; ++i)
+    {
+        if (game.players[i].userId == userId)
+            return i
+    }
+}
+
 function requireTurn(client, fun)
 {
     requireJoined(client, (clientData, game) =>
     {
-        if(game.players[game.playerTurnIndex].userId === clientData.userId)
+        if (game.state === 'in-game')
         {
-            fun(clientData, game)
+            if(game.players[game.playerTurnIndex].userId === clientData.userId)
+            {
+                fun(clientData, game)
+            }
+            else
+            {
+                client.emit('tamaloError', {
+                    error: 'NotTurn'
+                })
+            }
         }
         else
         {
             client.emit('tamaloError', {
-                error: 'NotTurn'
+                error: 'NotInGame'
             })
         }
     })
+}
+
+function shuffle(array)
+{
+    let counter = array.length
+
+    // While there are elements in the array
+    while (counter > 0)
+    {
+        // Pick a random index
+        let index = Math.floor(Math.random() * counter)
+
+        // Decrease counter by 1
+        counter--
+
+        // And swap the last element with it
+        let temp = array[counter]
+        array[counter] = array[index]
+        array[index] = temp
+    }
+
+    return array
 }
 
 
@@ -433,6 +479,30 @@ mongoClient.connect(async (err) =>
             {
                 game.state = 'in-game'
 
+                //Shuffle deck
+                shuffle(game.deck)
+
+                //Give everyone cards
+                for (let i = 0; i < game.players.length; ++i)
+                {
+                    let player = game.players[i]
+
+                    //Take 4 cards
+                    for (let j = 0; j < 4; ++j)
+                    {
+                        player.cards.push({
+                            weight: game.deck.splice(0, 1)[0],
+                            seenBy: []
+                        })
+                    }
+
+                    //Show 2 cards
+                    for(let j = 0; j < 2; ++j)
+                    {
+                        player.cards[j].seenBy.push(player.userId)
+                    }
+                }
+
                 broadcastTo(game.clients, 'gameStateChanged', game.state)
             })
             //TODO: democracy
@@ -453,12 +523,57 @@ mongoClient.connect(async (err) =>
                 //Delete client
                 game.clients.splice(game.clients.indexOf(client.id), 1)
 
-                //Delete player
+                //Player
                 for(let i = 0; i < game.players.length; ++i)
                 {
-                    if (game.players[i].userId == data.userId)
+                    let player = game.players[i]
+
+                    if (player.userId === data.userId)
                     {
+                        //Put cards back in deck
+                        for (let j = 0; j < player.cards.length; ++j)
+                        {
+                            game.deck.push(player.cards[j].weight)
+                        }
+
+                        //Delete player
                         game.players.splice(i, 1)
+
+                        //Adjust player turn index
+                        if (i === game.players.length-1)
+                        {
+                            game.playerTurnIndex = 0
+                            game.loops++
+                        }
+                        else if (i < game.playerTurnIndex)
+                        {
+                            game.playerTurnIndex--
+                        }
+
+                        //If player stopped, unstop
+                        if (game.playerStopIndex === i)
+                            game.playerStopIndex = null
+
+                        //Adjust player stop index
+                        if (i < game.playerStopIndex)
+                        {
+                            game.playerStopIndex--
+                        }
+                    }
+                    else
+                    {
+                        //Remove user ID from cards
+                        for (let j = 0; j < player.cards.length; ++j)
+                        {
+                            let seenBy = player.cards[j].seenBy
+                            for (let k = 0; k < seenBy.length; ++k)
+                            {
+                                if (seenBy[k] === data.userId)
+                                {
+                                    seenBy.splice(i, 1)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -475,7 +590,7 @@ mongoClient.connect(async (err) =>
             {
                 if (game.drawable)
                 {
-                    const card = game.deck.splice(0, 1)
+                    const card = game.deck.splice(0, 1)[0]
 
                     game.drawable = false
                     game.drawn = card
@@ -505,21 +620,45 @@ mongoClient.connect(async (err) =>
                 {
                     //TODO: make sure the indices are within bounds
 
-                    /*
-                    let player = game.players[]
-                    let card = player.cards[data.cardIndex]
+                    let player = game.players[getPlayerIndexByUserId(game, clientData.userId)]
+                    let card = player.cards[data.index]
 
-                    if (game.topCard === card.weight)
+                    let success =
+                        game.topCard === card.weight ||
+                        ((game.topCard === 0) && (card.weight === 13)) ||
+                        ((game.topCard === 13) && (card.weight === 0))
+
+                    if (success)
                     {
-                        
+                        //Drop card
+                        dropCardOnDeck(game, card.weight)
+                        player.cards.splice(data.index, 1)
+
+                        game.droppable = false
+                    }
+                    else
+                    {
+                        //Card is seen by everyone
+                        for (let i = 0; i < game.players.length; ++i)
+                        {
+                            let userId = game.players[i].userId
+                            if (!card.seenBy.includes(userId))
+                                card.seenBy.push(userId)
+                        }
+
+                        //Give penalty
+                        player.cards.push({
+                            weight: game.deck.splice(0, 1)[0],
+                            seenBy: []
+                        })
                     }
 
                     //Broadcast event
                     broadcastTo(game.clients, 'playerDroppedCard', {
-                        index: ,
-                        value: ,
-                        success: 
-                    })*/
+                        index: data.index,
+                        value: card.weight,
+                        success: success
+                    })
                 }
                 else
                 {
@@ -569,8 +708,9 @@ mongoClient.connect(async (err) =>
                         break
                 }
 
-                //Drop card on stack TODO
-                
+                //Drop card on stack
+                dropCardOnDeck(game, game.drawn)
+                game.drawn = null
 
                 //Broadcast event
                 broadcastTo(game.clients, 'playerDroppedDrawn', {
@@ -597,7 +737,21 @@ mongoClient.connect(async (err) =>
                 //TODO
 
                 //Swap cards
-                //TODO
+                let player
+                for (let i = 0; i < game.players.length; ++i)
+                {
+                    let p = game.players[i]
+                    if (p.userId === clientData.userId)
+                    {
+                        player = p
+                        break
+                    }
+                }
+                dropCardOnDeck(game, player.cards[data.index].weight)
+                player.cards[data.index].weight = game.drawn
+                player.cards[data.index].seenBy = [player.userId]
+
+                game.drawn = null
 
                 //Broadcast event
                 broadcastTo(game.clients, 'playerSwappedDrawn', {
@@ -611,15 +765,32 @@ mongoClient.connect(async (err) =>
         {
             requirePower(client, 'viewSelf', (clientData, game) =>
             {
+                //TODO: make sure card exists
 
+                let player = game.players[getPlayerIndexByUserId(game, clientData.userId)]
+                player.cards[data.index].seenBy.push(player.userId)
+
+                //Broadcast Event
+                broadcastTo(game.clients, 'playerViewSelf', {
+                    index: data.index
+                })
             })
         })
 
-        client.on('viewOther', (data) =>
+        client.on('viewOther', (data) =>//TODO: debug this
         {
+            //TODO: remove power once used
             requirePower(client, 'viewOther', (clientData, game) =>
             {
+                //TODO: make sure card and player exist
 
+                game.players[data.player].cards[data.card].seenBy.push(clientData.userId)
+
+                //Broadcast Event
+                broadcastTo(game.clients, 'playerViewOther', {
+                    player: data.player,
+                    card: data.card
+                })
             })
         })
 
@@ -669,12 +840,23 @@ mongoClient.connect(async (err) =>
             {
                 if (game.drawn === null && !game.drawable)
                 {
+                    //Reset game stuff
+                    game.powers = []
+                    game.drawable = true
+
+                    //Next Player
                     game.playerTurnIndex += 1
                     game.playerTurnIndex %= game.players.length
 
                     if (game.playerTurnIndex === 0)
                     {
                         ++game.loops
+                    }
+
+                    //If player stopped
+                    if (game.playerStopIndex === game.playerTurnIndex)
+                    {
+                        //TODO
                     }
 
                     broadcastTo(game.clients, 'nextPlayer', {
@@ -697,7 +879,14 @@ mongoClient.connect(async (err) =>
                 //TODO: make it configurable
                 if (game.loops >= 3 && game.playerStopIndex === null)
                 {
-                    //game.playerStopIndex = //
+                    for (let i = 0; i < game.players.length; ++i)
+                    {
+                        if (game.players[i].userId === clientData.userId)
+                        {
+                            game.playerStopIndex = i
+                            break
+                        }
+                    }
 
                     broadcastTo(game.clients, 'callStop', {
                         userId: clientData.userId
@@ -716,11 +905,43 @@ mongoClient.connect(async (err) =>
                     round: game.round,
                     loops: game.loops,
                     droppable: game.droppable,
+                    drawable: game.drawable,
                     topCard: game.topCard,
                     playerTurn: game.playerTurnIndex,
                     playerStop: game.playerStopIndex,
-                    players: []
-                }//TODO: drawn card
+                    players: [],
+                    powers: game.powers,
+                    isCardDrawn: game.drawn !== null
+                }
+                
+                //Self
+                for(let i = 0; i < game.players.length; ++i)
+                {
+                    if (game.players[i].userId === clientData.userId)
+                    {
+                        gameData.self = i
+
+                        break
+                    }
+                }
+
+                //Drawn card (only send if current player is requesting it)
+                for(let i = 0; i < game.players.length; ++i)
+                {
+                    if (game.players[i].userId === clientData.userId)
+                    {
+                        if (i === game.playerTurnIndex)
+                        {
+                            gameData.drawn = game.drawn
+                        }
+                        else
+                        {
+                            gameData.drawn = null
+                        }
+
+                        break
+                    }
+                }
 
                 //Players
                 for(let i = 0; i < game.players.length; ++i)

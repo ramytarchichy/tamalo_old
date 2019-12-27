@@ -8,10 +8,8 @@ block head
 
 block content
 
-    p#debug
-
     .screen#join
-        button(type='button' onclick='startGame()') Start Game
+        button(onclick='startGame()') Start Game
         table#playerList
             tr
                 th(style='width: 20px') #
@@ -19,22 +17,30 @@ block content
                 th Score
 
     .screen#game
-        #players
-            p TEST
+        p#topCard
+        ul#players
+            p Loading...
+        button(id='btnDrop' onclick='clickDrop()') Drop Card
         #controls
-            button(id='btnNext' type='button' onclick='nextPlayer()') Next
+            button(id='btnNext' onclick='nextPlayer()') Next
             br
-            button(id='btnCallStop' type='button' onclick='callStop()') Tamalo!
+            button(id='btnCallStop' onclick='callStop()') Tamalo!
             br
-            button(id='btnDraw' type='button' onclick='drawCard()') Draw Card
+            button(id='btnDraw' onclick='drawCard()') Draw Card
+            br
+            button(id='btnViewSelf' onclick='powerViewSelf()') View Own Card
+            br
+            button(id='btnViewOther' onclick='powerViewOther()') View Other Card
+            br
+            button(id='btnSwapOther' onclick='powerSwapOther()') Swap Cards
 
     .overlay#drawnCard
         p You've drawn...
         br
-        
+        p#drawnCardWeight
         br
-        button(id='btnSwapDrawn' type='button' onclick='') Swap
-        button(id='btnDropDrawn' type='button' onclick='') Drop
+        button(id='btnSwapDrawn' onclick='selectSwapDrawn()') Swap
+        button(id='btnDropDrawn' onclick='dropDrawn()') Drop
 
     if user
         script const session = !{JSON.stringify(session)};
