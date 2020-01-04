@@ -897,7 +897,7 @@ mongoClient.connect(async (err) =>
 
         client.on('syncData', (data) =>
         {
-            requireJoined(client, (clientData, game) =>
+            requireJoined(client, async (clientData, game) =>
             {
                 //Game Data
                 let gameData = {
@@ -971,6 +971,18 @@ mongoClient.connect(async (err) =>
                     }
 
                     gameData.players.push(player)
+                }
+
+                //Usernames
+                for (let i = 0; i < game.players.length; ++i)
+                {
+                    const user = await db.collection('users').findOne({
+                        id: game.players[i].userId
+                    })
+
+                    //Check if null TODO
+
+                    gameData.players[i].username = user.username
                 }
 
                 client.emit('syncData', gameData)

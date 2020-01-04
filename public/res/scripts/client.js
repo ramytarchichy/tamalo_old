@@ -195,7 +195,7 @@ function updateUI()
 
                 let li = document.createElement('li')
                 
-                li.innerHTML += player.userId
+                li.innerHTML += he.encode(player.username)
 
                 //Cards
                 for (let j = 0; j < player.cards.length; ++j)
