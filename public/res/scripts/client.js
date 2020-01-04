@@ -307,8 +307,16 @@ function powerViewOther()
         {
             let btn = playerCardButtons[i][j]
 
-            btn.disabled = false
-            btn.onclick = () => {viewOther(i, j)}
+            //Enable all cards except self
+            if (i === game.self)
+            {
+                btn.disabled = true
+            }
+            else
+            {
+                btn.disabled = false
+                btn.onclick = () => {viewOther(i, j)}
+            }
         }
     }
 }
@@ -317,7 +325,7 @@ function viewOther(playerIndex, cardIndex)
 {
     socket.emit('viewOther', {
         player: playerIndex,
-        card, cardIndex
+        card: cardIndex
     })
 }
 

@@ -19,6 +19,18 @@ let mongoClient = new MongoClient(options.mongodb_url, { useUnifiedTopology: tru
 
 
 
+function removePower(game, power)
+{
+    for (let i = 0; i < game.powers.length; ++i)
+    {
+        if (game.powers[i] === power)
+        {
+            game.powers.splice(i, 1)
+            break
+        }
+    }
+}
+
 function dropCardOnDeck(game, weight)
 {
     game.deck.push(game.topCard)
@@ -65,6 +77,7 @@ function requireJoined(client, fun)
 {
     const clientData = clientMap.get(client.id)
     if (!clientData) return
+    if (!clientData.userId) return
     let game = games.get(clientData.gameId)
     if (!game) return
 
@@ -350,6 +363,14 @@ mongoClient.connect(async (err) =>
         {
             res.redirect('/login')
         }
+    })
+    //TODO: hash token secrets
+
+    app.get('/privacy', async (req, res) =>
+    {
+        res.render('privacy', {
+            user: await findUserBySession(db, req.session)
+        })
     })
 
 
@@ -770,6 +791,9 @@ mongoClient.connect(async (err) =>
                 let player = game.players[getPlayerIndexByUserId(game, clientData.userId)]
                 player.cards[data.index].seenBy.push(player.userId)
 
+                //Remove power
+                removePower(game, 'viewSelf')
+
                 //Broadcast Event
                 broadcastTo(game.clients, 'playerViewSelf', {
                     index: data.index
@@ -777,7 +801,7 @@ mongoClient.connect(async (err) =>
             })
         })
 
-        client.on('viewOther', (data) =>//TODO: debug this
+        client.on('viewOther', (data) =>
         {
             //TODO: remove power once used
             requirePower(client, 'viewOther', (clientData, game) =>
@@ -785,6 +809,9 @@ mongoClient.connect(async (err) =>
                 //TODO: make sure card and player exist
 
                 game.players[data.player].cards[data.card].seenBy.push(clientData.userId)
+
+                //Remove power
+                removePower(game, 'viewOther')
 
                 //Broadcast Event
                 broadcastTo(game.clients, 'playerViewOther', {
@@ -824,6 +851,9 @@ mongoClient.connect(async (err) =>
                 const tmp = game.players[game.playerTurnIndex].cards[data.cardIndex]
                 game.players[game.playerTurnIndex].cards[data.cardIndex] = game.players[data.otherPlayerIndex].cards[data.otherCardIndex]
                 game.players[data.otherPlayerIndex].cards[data.otherCardIndex] = tmp
+
+                //Remove power
+                removePower(game, 'swapOther')
 
                 //Broadcast event
                 broadcastTo(game.clients, 'playerSwapOther', {
@@ -889,12 +919,12 @@ mongoClient.connect(async (err) =>
                     }
 
                     broadcastTo(game.clients, 'callStop', {
-                        userId: clientData.userId
+                        index: game.playerStopIndex
                     })
                 }//TODO: send errors
             })
         })
-
+        //TODO: number.issafeinteger() everywhere
         client.on('syncData', (data) =>
         {
             requireJoined(client, async (clientData, game) =>
