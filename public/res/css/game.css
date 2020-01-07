@@ -1,3 +1,9 @@
+body
+{
+    color: #FFF;
+    background-color: rgb(43, 33, 70);
+}
+
 .screen
 {
     display: none;
@@ -16,30 +22,79 @@
     z-index: 2;
 }
 
+
+
+#actionLog
+{
+    position: fixed;
+    text-align: left;
+    overflow-y: scroll;
+}
+
+#actionLog li
+{
+    background: #aaa;
+    font-family: monospace;
+}
+
+.cardImage
+{
+    height: 140px;
+    width: 100px;
+    background-color: #fff;
+    border-radius: 8px;
+}
+
 #drawnCard
 {
-    background-color: rgba(0, 0, 0, 0.5);
+    text-align: center;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
-table#playerList
+#drawnCard button
 {
-    float: left;
+    background-color: #0F0;
+    border-radius: 8px;
+    width: 100px;
 }
 
-#playerList tr:nth-child(odd)
+#controls button
 {
-    background: #eee;
-    overflow: hidden;
+    width: 180px;
 }
+
+.card
+{
+    border-radius: 8px;
+    padding: 0 0;
+    background-color: #fff;
+    align-content: center;
+}
+
+
+.card:disabled
+{
+    
+}
+
+
+#players
+{
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
 
 li#self
 {
-    background: #0F0;
+    background: #99E;
 }
 
 li#current
 {
-    background: #99E;
+    background: #3A3;
 }
 
 li#stop

@@ -1,14 +1,16 @@
-let socket = io.connect(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/')
+const site = window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/'
+let socket = io.connect(site)
 
 const urlParams = new URLSearchParams(window.location.search)
 const gameID = urlParams.get('id')
 
 const divJoin = document.getElementById('join')
 const divGame = document.getElementById('game')
+const divRoundEnd = document.getElementById('roundEnd')
 const divControls = document.getElementById('controls')
 const divDrawn = document.getElementById('drawnCard')
-const txtDrawnWeight = document.getElementById('drawnCardWeight')
-const playerTable = document.getElementById('playerList')
+const imgDrawn = document.getElementById('drawnCardWeight')
+const ulPlayerList = document.getElementById('playerList')
 const divPlayers = document.getElementById('players')
 
 const btnViewSelf = document.getElementById('btnViewSelf')
@@ -18,10 +20,12 @@ const btnDraw = document.getElementById('btnDraw')
 const btnNext = document.getElementById('btnNext')
 const btnDrop = document.getElementById('btnDrop')
 
-const txtTopCard = document.getElementById('topCard')
+const imgTopCard = document.getElementById('topCard')
+const ulScoreList = document.getElementById('scoreList')
+//const ulActionLog = document.getElementById('actionLog')
 
 const screens = [
-    divJoin, divGame
+    divJoin, divGame, divRoundEnd
 ]
 
 let myCardButtons = []
@@ -31,6 +35,13 @@ let joined = false
 let game = null
 let gameSettings = null
 
+
+function logEvent(text)
+{
+    let x = document.createElement('li')
+    x.innerHTML = he.encode(text)
+    //ulActionLog.appendChild(x) //TODO
+}
 
 
 socket.on('connect', (data) =>
@@ -69,15 +80,15 @@ socket.on('gameStateChanged', (data) =>
     socket.emit('syncData', {})
 })
 
-socket.on('callStop', () =>
+socket.on('callStop', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[data.index].username + ' called Tamalo!')
 })
 
 socket.on('syncData', (data) =>
 {
     game = data
-    console.log(data)
     updateUI()
 })
 
@@ -90,41 +101,49 @@ socket.on('tamaloError', (data) =>
 socket.on('drawnCard', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' has drawn a card from the deck.')
 })
 
 socket.on('nextPlayer', (data) =>
 {
+    logEvent(game.players[(game.playerTurn+1)%game.players.length].username + "'s turn.")
     socket.emit('syncData', {})
 })
 
 socket.on('playerDroppedCard', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' dropped a card on the deck.')
 })
 
 socket.on('playerDroppedDrawn', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' dropped the drawn card.')
 })
 
 socket.on('playerSwappedDrawn', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' swapped his card (' + (data.index+1) + ') with the drawn card.')
 })
 
 socket.on('playerViewSelf', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' viewed his own card (' + (data.index+1) + ')')
 })
 
 socket.on('playerViewOther', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' viewed ' + game.players[data.player].username + "'s card (" + (data.card+1) + ')')
 })
 
 socket.on('playerSwapOther', (data) =>
 {
     socket.emit('syncData', {})
+    logEvent(game.players[game.playerTurn].username + ' swapped his card (' + (data.cardIndex+1) + ') with ' + game.players[data.otherPlayerIndex].username + "'s card (" + (data.otherCardIndex+1) + ')')
 })
 
 
@@ -142,6 +161,10 @@ function updateUI()
     {
         //TODO: other states
 
+        case 'round-end':
+            div = divRoundEnd
+            break;
+
         case 'not-started':
             div = divJoin
             break;
@@ -157,7 +180,8 @@ function updateUI()
     if (game.isCardDrawn === true && game.drawnCard !== null)
     {
         divDrawn.style.display = game.isCardDrawn ? 'block' : 'none'
-        txtDrawnWeight.innerHTML = game.drawn
+        imgDrawn.src = site + 'res/images/cards/' + game.drawn + '.png'
+        imgDrawn.alt = game.drawn
     }
 
     //Player list
@@ -165,13 +189,31 @@ function updateUI()
     {
         //TODO: other states
 
+        case 'round-end':
+            ulScoreList.innerHTML = ''
+            for (let i = 0; i < game.players.length; ++i)
+            {
+                let player = game.players[i]
+                let li = document.createElement('li')
+                li.innerHTML = he.encode(player.username) + ': ' + player.score
+                ulScoreList.appendChild(li)
+            }
+            break
+
         case 'not-started':
-            //TODO
+            ulPlayerList.innerHTML = ''
+            for (let i = 0; i < game.players.length; ++i)
+            {
+                let li = document.createElement('li')
+                li.innerHTML = he.encode(game.players[i].username)
+                ulPlayerList.appendChild(li)
+            }
             break
 
         case 'in-game':
 
-            txtTopCard.innerHTML = 'Top card: ' +  game.topCard
+            imgTopCard.src = site + 'res/images/cards/' + game.topCard + '.png'
+            imgTopCard.alt = game.topCard
 
             //Controls
             divControls.style.display = (game.self === game.playerTurn)?'block':'none'
@@ -194,8 +236,26 @@ function updateUI()
                 playerCardButtons.push([])
 
                 let li = document.createElement('li')
+
+                //Colors
+                if (i === game.self)
+                {
+                    li.id = 'self'
+                }
+                else if (i === game.playerStop)
+                {
+                    li.id = 'stop'
+                }
+                else if (i === game.playerTurn)
+                {
+                    li.id = 'current'
+                }
                 
-                li.innerHTML += he.encode(player.username)
+                let divPlayer = document.createElement('div')
+                divPlayer.innerHTML += he.encode(player.username)
+                divPlayer.appendChild(document.createElement('br'))
+                divPlayer.innerHTML += 'Score: ' + player.score
+                li.appendChild(divPlayer)
 
                 //Cards
                 for (let j = 0; j < player.cards.length; ++j)
@@ -203,14 +263,15 @@ function updateUI()
                     let card = player.cards[j]
 
                     let btn = document.createElement('button')
-                    if (card.weight === null)
-                    {
-                        btn.innerHTML = '???'
-                    }
-                    else
-                    {
-                        btn.innerHTML = card.weight
-                    }
+
+                    btn.classList.add('card')
+
+                    let img = document.createElement('img')
+                    img.src = site + 'res/images/cards/' + card.weight + '.png'
+                    img.classList.add('cardImage')
+                    img.alt = card.weight
+                    btn.appendChild(img)
+
                     btn.disabled = true
 
                     li.appendChild(btn)

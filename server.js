@@ -495,10 +495,35 @@ mongoClient.connect(async (err) =>
 
         client.on('voteReady', (data) =>
         {
-
             requireJoined(client, (clientData, game) =>
             {
                 game.state = 'in-game'
+                //TODO check if game in progress
+
+                game.playerTurnIndex = 0
+                game.playerStopIndex = null
+                game.loops = 0
+                game.topCard = null
+                game.droppable = false
+                game.drawable = true
+                game.drawn = null
+
+                game.deck = [
+                    0, 0,
+                    1, 1, 1, 1,
+                    2, 2, 2, 2,
+                    3, 3, 3, 3,
+                    4, 4, 4, 4,
+                    5, 5, 5, 5,
+                    6, 6, 6, 6,
+                    7, 7, 7, 7,
+                    8, 8, 8, 8,
+                    9, 9, 9, 9,
+                    10, 10, 10, 10,
+                    11, 11, 11, 11,
+                    12, 12, 12, 12,
+                    13, 13
+                ]
 
                 //Shuffle deck
                 shuffle(game.deck)
@@ -507,6 +532,7 @@ mongoClient.connect(async (err) =>
                 for (let i = 0; i < game.players.length; ++i)
                 {
                     let player = game.players[i]
+                    player.cards=[]
 
                     //Take 4 cards
                     for (let j = 0; j < 4; ++j)
@@ -826,7 +852,7 @@ mongoClient.connect(async (err) =>
             requirePower(client, 'swapOther', (clientData, game) =>
             {
                 //Check if stopped
-                if (game.playerStopIndex === data.otherPlayer)
+                if (game.playerStopIndex === data.otherPlayerIndex)
                 {
                     client.emit('tamaloError', {
                         error: 'PlayerStopped'
@@ -886,7 +912,67 @@ mongoClient.connect(async (err) =>
                     //If player stopped
                     if (game.playerStopIndex === game.playerTurnIndex)
                     {
-                        //TODO
+                        game.state = 'round-end'
+                        game.loops = 0
+                        game.round++
+                        
+                        //Check how many points the player accumulated
+                        let stopPoints = 0
+                        let playerStop = game.players[game.playerStopIndex]
+                        for (let i = 0; i < playerStop.cards.length; ++i)
+                        {
+                            stopPoints += playerStop.cards[i].weight
+                        }
+
+                        //Get all points
+                        let points = []
+                        for (let i = 0; i < game.players.length; ++i)
+                        {
+                            let player = game.players[i]
+                            points.push(0)
+                            for (let j = 0; j < player.cards.length; ++j)
+                            {
+                                points[i] += player.cards[j].weight
+                            }
+                        }
+
+                        //Find out who won
+                        let won = true
+                        for (let i = 0; i < game.players.length; ++i)
+                        {
+                            let player = game.players[i]
+
+                            if (i === game.playerStopIndex) continue
+                            
+                            if (points[i] <= stopPoints)
+                            {
+                                won = false
+                            }
+                        }
+
+                        //Update data
+                        for (let i = 0; i < game.players.length; ++i)
+                        {
+                            let player = game.players[i]
+                            if (i === game.playerStopIndex)
+                            {
+                                if (won)
+                                {
+                                    player.score += 10
+                                    continue
+                                }
+                                else
+                                {
+                                    player.score -= 10
+                                }
+                            }
+
+                            player.score -= points[i]
+                        }
+
+                        broadcastTo(game.clients, 'gameStateChanged', game.state)
+
+                        return
                     }
 
                     broadcastTo(game.clients, 'nextPlayer', {

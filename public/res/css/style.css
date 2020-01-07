@@ -1,28 +1,47 @@
-html, body
+button
 {
-    text-align: center;
-    font-family: 'Avenir Next', 'Helvetica', 'Arial', sans-serif;
+    border:1px solid #FFF;
+    color: #fff;
+    border-radius: 3px;
+    padding:0.35em 1.2em;
+    background-color: rgba(0,0,0,0);
+}
+
+button:disabled
+{
+    border-color: #555;
+    color: #555;
+}
+
+button:hover:disabled
+{
+    color: #555;
+    background-color: rgba(0,0,0,0);
+}
+
+button:hover
+{
+    background-color: #FFF;
+    color: #000;
 }
 
 #footer
 {
-    position: fixed;
-    left: 0;
+    display: none;
+    position: absolute;
+    right: 0;
     bottom: 0;
-    width: 100%;
+    left: 0;
     background-color: #333;
     color: white;
     text-align: center;
 }
 
-
-
-
 a.button:link, a.button:visited
 {
     background-color: #f44336;
     color: white;
-    padding: 14px 25px;
+    padding: 10px 25px;
     text-align: center;
     text-decoration: none;
     display: inline-block;

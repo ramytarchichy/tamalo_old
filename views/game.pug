@@ -10,17 +10,15 @@ block content
 
     .screen#join
         button(onclick='startGame()') Start Game
-        table#playerList
-            tr
-                th(style='width: 20px') #
-                th(style='width: 200px') Player
-                th Score
+        ul#playerList
 
     .screen#game
 
-        ul#actionLog
+        //ul#actionLog
 
-        p#topCard
+        | Top card: 
+        img(src='/res/images/cards/null.png' alt='null').cardImage#topCard
+
         ul#players
             p Loading...
         button(id='btnDrop' onclick='clickDrop()') Drop Card
@@ -40,10 +38,14 @@ block content
     .overlay#drawnCard
         p You've drawn...
         br
-        p#drawnCardWeight
+        img.cardImage#drawnCardWeight
         br
         button(id='btnSwapDrawn' onclick='selectSwapDrawn()') Swap
         button(id='btnDropDrawn' onclick='dropDrawn()') Drop
+
+    .screen#roundEnd
+        ul#scoreList
+        button(onclick='startGame()') Next Round
 
     if user
         script const session = !{JSON.stringify(session)};
