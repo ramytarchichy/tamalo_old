@@ -33,7 +33,8 @@ function removePower(game, power)
 
 function dropCardOnDeck(game, weight)
 {
-    game.deck.push(game.topCard)
+	if (game.topCard !== null)
+    	game.deck.push(game.topCard)
     game.topCard = weight
     game.droppable = true
 }
@@ -168,6 +169,7 @@ mongoClient.connect(async (err) =>
 
     //Mongo Database
     const db = mongoClient.db(options.mongodb_name)
+
 
     //Session management
     app.use(session({
@@ -433,10 +435,10 @@ mongoClient.connect(async (err) =>
 
 
     //Web server
-    let server = http.createServer(app)
+    let httpServer = http.createServer(app)
 
     //Socket.IO server
-    io(server).on('connection', (client) => {
+    io(httpServer).on('connection', (client) => {
 
         client.on('join', async(data) =>
         {
@@ -1109,8 +1111,8 @@ mongoClient.connect(async (err) =>
 
 
     //Run server
-    let listener = server.listen(options.port, () =>
+    let httpListener = httpServer.listen(options.port_http, () =>
     {
-        console.log('Server running on port ' + listener.address().port)
+        console.log('HTTP Server running on port ' + httpListener.address().port)
     })
 })

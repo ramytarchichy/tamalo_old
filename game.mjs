@@ -2,11 +2,13 @@ export default class Game
 {
     constructor()
     {
-        this.round = 0
         this.clients = []
         this.players = []
 
         this.newRound()
+
+        this.round = 0
+        this.state = 'not-started'
     }
 
     newRound()
@@ -14,8 +16,10 @@ export default class Game
         this.round++
         this.loops = 0
         this.droppable = true
+        this.topCard = null
 
-        this.playerTurnIndex = 0
+        this.playerTurn = 0
+        this.playerStopped = null
 
         this.deck = [
             0, 0,
@@ -33,14 +37,48 @@ export default class Game
             12, 12, 12, 12,
             13, 13
         ]
+
+        _shuffleDeck()
+        shuffle(this.players)
+
+        for (let i = 0; i < this.players.length; ++i)
+        {
+            let player = this.players[i]
+            
+        }
+
+        this.state = 'in-game'
     }
 
     nextPlayer()
     {
-        this.playerTurnIndex++
-        this.playerTurnIndex %= this.players.length
+        this.playerTurn++
+        this.playerTurn %= this.players.length
 
         if (this.playerTurnIndex === 0)
+        {
             this.loops++
+        }
+    }
+
+    _pushCard(weight)
+    {
+        this.deck.push(this.topCard)
+        this.topCard = weight
+
+        this._cardsPushed++
+        if (this._cardsPushed >= )
+            this._shuffleDeck
+    }
+
+    _shuffleDeck()
+    {
+        this._cardsPushed = 0
+        shuffle(this.deck)
+    }
+
+    _drawCard()
+    {
+        return this.deck.splice(0, 1)
     }
 }
